@@ -2,7 +2,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use rustc_ast::{ast, token::DelimToken, visit, AstLike};
-use rustc_span::{symbol, BytePos, Pos, Span, DUMMY_SP};
+use rustc_span::{symbol, BytePos, Pos, Span};
 
 use crate::config::{BraceStyle, Config};
 use crate::formatting::{
@@ -609,6 +609,7 @@ impl<'b, 'a: 'b> FmtVisitor<'a> {
                             indent,
                             item.ident,
                             &fn_signature,
+                            &item.vis,
                             generics,
                             item.span,
                         );
@@ -684,14 +685,9 @@ impl<'b, 'a: 'b> FmtVisitor<'a> {
                 let ast::FnKind(defaultness, ref sig, ref generics, ref block) = **fn_kind;
                 if let Some(ref body) = block {
                     let inner_attrs = inner_attributes(&ti.attrs);
-                    let vis = ast::Visibility {
-                        kind: ast::VisibilityKind::Inherited,
-                        span: DUMMY_SP,
-                        tokens: None,
-                    };
                     let fn_ctxt = visit::FnCtxt::Assoc(visit::AssocCtxt::Trait);
                     self.visit_fn(
-                        visit::FnKind::Fn(fn_ctxt, ti.ident, sig, &vis, Some(body)),
+                        visit::FnKind::Fn(fn_ctxt, ti.ident, sig, &ti.vis, Some(body)),
                         generics,
                         &sig.decl,
                         ti.span,
@@ -701,7 +697,7 @@ impl<'b, 'a: 'b> FmtVisitor<'a> {
                 } else {
                     let indent = self.block_indent;
                     let rewrite =
-                        self.rewrite_required_fn(indent, ti.ident, sig, generics, ti.span);
+                        self.rewrite_required_fn(indent, ti.ident, sig, &ti.vis, generics, ti.span);
                     self.push_rewrite(ti.span, rewrite);
                 }
             }
@@ -754,7 +750,7 @@ impl<'b, 'a: 'b> FmtVisitor<'a> {
                 } else {
                     let indent = self.block_indent;
                     let rewrite =
-                        self.rewrite_required_fn(indent, ii.ident, sig, generics, ii.span);
+                        self.rewrite_required_fn(indent, ii.ident, sig, &ii.vis, generics, ii.span);
                     self.push_rewrite(ii.span, rewrite);
                 }
             }
